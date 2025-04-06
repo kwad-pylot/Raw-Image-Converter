@@ -146,13 +146,13 @@ def convert_raw_to_jpeg(root_directory):
 
                 # Check if file was previously converted successfully (from log)
                 if input_path in conversion_log:
-                    logging.info(f"Skipping {filename} (found in conversion log)")
+                    logging.info(f"Skipping: {filename} in {current_dir} (found in conversion log)")
                     skipped_count += 1
                     continue
                     
                 # Check if the converted file already exists
                 if os.path.exists(output_path):
-                    logging.info(f"Skipping {filename} (output file already exists)")
+                    logging.info(f"Skipping: {filename} in {current_dir} (output file already exists)")
                     skipped_count += 1
                     continue
 
