@@ -240,16 +240,16 @@ def convert_raw_to_jpeg(root_directory):
                     
                     # Update progress counter
                     progress_counter += 1
-                    # Show basic progress for every file
+                    # Show progress with speed for every file
                     percent_done = (progress_counter / total_raw_files) * 100 if total_raw_files > 0 else 0
-                    print(f"Progress: {progress_counter}/{total_raw_files} files ({percent_done:.1f}%)")
+                    elapsed = time.time() - start_process_time
+                    files_per_second = progress_counter / elapsed if elapsed > 0 else 0
+                    print(f"Progress: {progress_counter}/{total_raw_files} files ({percent_done:.1f}%) - {files_per_second:.2f} files/sec")
                     
-                    # Show detailed progress every 10 files or when we reach multiples of 1%
+                    # Show estimated time remaining every 10 files or when we reach multiples of 1%
                     if progress_counter % 10 == 0 or progress_counter % max(1, int(total_raw_files/100)) == 0:
-                        elapsed = time.time() - start_process_time
-                        files_per_second = progress_counter / elapsed if elapsed > 0 else 0
                         estimated_remaining = (total_raw_files - progress_counter) / files_per_second if files_per_second > 0 else 0
-                        print(f"  Speed: {files_per_second:.2f} files/sec - Est. remaining: {estimated_remaining/60:.1f} min")
+                        print(f"  Est. remaining: {estimated_remaining/60:.1f} min")
                 except (rawpy.LibRawFileUnsupportedError, rawpy.LibRawError, OSError, IOError) as e:
                     # Handle all types of raw file errors
                     error_msg = f"Error: Could not process {filename}. File format might be unsupported or corrupted: {e}"
@@ -267,9 +267,11 @@ def convert_raw_to_jpeg(root_directory):
                     
                     # Update progress counter for errors
                     progress_counter += 1
-                    # Show progress for errors too
+                    # Show progress with speed for errors too
                     percent_done = (progress_counter / total_raw_files) * 100 if total_raw_files > 0 else 0
-                    print(f"Progress: {progress_counter}/{total_raw_files} files ({percent_done:.1f}%)")
+                    elapsed = time.time() - start_process_time
+                    files_per_second = progress_counter / elapsed if elapsed > 0 else 0
+                    print(f"Progress: {progress_counter}/{total_raw_files} files ({percent_done:.1f}%) - {files_per_second:.2f} files/sec")
                     
                 except Exception as e:
                     # Handle general conversion errors
@@ -288,9 +290,11 @@ def convert_raw_to_jpeg(root_directory):
                     
                     # Update progress counter for errors
                     progress_counter += 1
-                    # Show progress for errors too
+                    # Show progress with speed for errors too
                     percent_done = (progress_counter / total_raw_files) * 100 if total_raw_files > 0 else 0
-                    print(f"Progress: {progress_counter}/{total_raw_files} files ({percent_done:.1f}%)")
+                    elapsed = time.time() - start_process_time
+                    files_per_second = progress_counter / elapsed if elapsed > 0 else 0
+                    print(f"Progress: {progress_counter}/{total_raw_files} files ({percent_done:.1f}%) - {files_per_second:.2f} files/sec")
         
         if not raw_files_found and len(files) > 0:
             print(f"No raw image files found in directory: {current_dir}")
