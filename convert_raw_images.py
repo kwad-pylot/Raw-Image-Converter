@@ -257,7 +257,7 @@ def convert_raw_to_jpeg(root_directory):
                     main_progress.update(1)
         
         if not raw_files_found and len(files) > 0:
-            print(f"No raw image files found in this directory.")
+            print(f"No raw image files found in directory: {current_dir}")
 
     # Close the progress bar
     main_progress.close()
