@@ -31,26 +31,51 @@ A powerful Python tool for converting raw image files to high-quality JPEGs whil
    pip install -r requirements.txt
    ```
 
-## Usage
+## Command Reference
 
-### Converting Raw Images
+### All Available Commands
 
-Basic usage (starts from the script's directory):
-```
+#### Converting Raw Images
+
+| Command | Description |
+|---------|-------------|
+| `python convert_raw_images.py` | Basic conversion (starts in current directory) |
+| `python convert_raw_images.py --dir "PATH"` | Convert raw files in specified directory |
+| `python convert_raw_images.py --space 1000` | Set minimum required disk space (MB) |
+| `python convert_raw_images.py --force` | Force conversion despite low disk space |
+| `python convert_raw_images.py --dir "PATH" --space 1000 --force` | Combined options |
+
+#### Deleting Original Raw Files
+
+| Command | Description |
+|---------|-------------|
+| `python delete_raw_files.py` | Delete raw files (interactive mode) |
+| `python delete_raw_files.py --dir "PATH"` | Delete raw files in specified directory |
+| `python delete_raw_files.py --force` | Delete without confirmation prompts |
+| `python delete_raw_files.py --batch 100` | Limit deletion to 100 files per run |
+| `python delete_raw_files.py --log "custom_log.json"` | Use custom log filename |
+| `python delete_raw_files.py --dir "PATH" --force --batch 50` | Combined options |
+
+### Common Examples
+
+```bash
+# Basic conversion in current directory
 python convert_raw_images.py
+
+# Convert photos in a specific folder
+python convert_raw_images.py --dir "C:\Users\Photos\Vacation2023"
+
+# Convert with low disk space override
+python convert_raw_images.py --dir "C:\Users\Photos\Vacation2023" --force
+
+# Delete raw files after verifying conversions
+python delete_raw_files.py --dir "C:\Users\Photos\Vacation2023"
+
+# Delete in batches without confirmation
+python delete_raw_files.py --dir "C:\Users\Photos\Vacation2023" --batch 50 --force
 ```
 
-Specify a custom starting directory:
-```
-python convert_raw_images.py --dir "C:\Path\To\Your\Photos"
-```
-
-Additional options:
-```
-python convert_raw_images.py --dir "C:\Path\To\Your\Photos" --space 1000 --force
-```
-
-#### Progress Tracking
+### Progress Tracking
 
 The script provides clear progress updates that show:
 - Total number of raw files found
@@ -68,31 +93,6 @@ Converted: IMG_2557.CR2 -> IMG_2557.jpg
 Progress: 10/157 files (6.4%) - 1.25 files/sec - Est. remaining: 117.6 min
 Converted: IMG_2558.CR2 -> IMG_2558.jpg
 ```
-
-#### Command-line Arguments
-
-- `--dir`, `-d`: Starting directory for conversion (default: script location)
-- `--space`, `-s`: Required free space in MB (default: 500)
-- `--force`, `-f`: Force conversion even with low disk space
-
-### Deleting Original Raw Files
-
-After verifying your conversions, you can safely delete the original raw files:
-```
-python delete_raw_files.py
-```
-
-Additional options:
-```
-python delete_raw_files.py --force --batch 100
-```
-
-#### Command-line Arguments
-
-- `--dir`, `-d`: Directory containing the conversion logs (default: script location)
-- `--log`: Name of the conversion log file (default: conversion_log.json)
-- `--force`: Delete without confirmation prompt
-- `--batch`: Limit the number of files to delete in one run
 
 ## How It Works
 
@@ -144,22 +144,7 @@ The separate deletion script:
 
 All log files are stored in the directory being processed, not in the script's location. This allows you to maintain separate logs for different photo collections and ensures that when you run the deletion tool, it will find the correct conversion logs.
 
-## Examples
 
-### Converting a specific folder of raw images:
-```
-python convert_raw_images.py --dir "C:\Users\Photos\Vacation2023"
-```
-
-### Deleting raw files from the same directory:
-```
-python delete_raw_files.py --dir "C:\Users\Photos\Vacation2023"
-```
-
-### Deleting raw files in batches:
-```
-python delete_raw_files.py --dir "C:\Users\Photos\Vacation2023" --batch 50
-```
 
 ## Troubleshooting
 
