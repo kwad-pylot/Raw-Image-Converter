@@ -26,19 +26,33 @@ def check_disk_space(directory, required_mb=500):
     """
     Check if there's enough disk space in the specified directory.
     By default, requires at least 500MB free.
+    Returns a tuple of (has_space, free_mb, status) where status is:
+    - 'critical': Less than required space
+    - 'warning': Less than 2x required space
+    - 'ok': More than 2x required space
     """
     try:
         # Get disk usage statistics
         total, used, free = shutil.disk_usage(directory)
         free_mb = free / (1024 * 1024)  # Convert to MB
         
+        # Determine status based on available space
         if free_mb < required_mb:
+            status = 'critical'
+            has_space = False
             logging.warning(f"Low disk space: Only {free_mb:.2f}MB available, {required_mb}MB recommended")
-            return False, free_mb
-        return True, free_mb
+        elif free_mb < required_mb * 2:
+            status = 'warning'
+            has_space = True
+            logging.info(f"Disk space getting low: {free_mb:.2f}MB available")
+        else:
+            status = 'ok'
+            has_space = True
+            
+        return has_space, free_mb, status
     except Exception as e:
         logging.error(f"Error checking disk space: {e}")
-        return False, 0
+        return False, 0, 'error'
 
 def load_conversion_log(root_directory, log_file='conversion_log.json'):
     """
@@ -90,10 +104,16 @@ def save_corrupt_files_log(corrupt_files_log, root_directory, log_file='corrupt_
     except Exception as e:
         logging.error(f"Error saving corrupt files log: {e}")
 
-def convert_raw_to_jpeg(root_directory):
+def convert_raw_to_jpeg(root_directory, args):
     """
     Recursively converts raw image files (.CR2, .RW2) in the root directory and all subdirectories
     to high-quality JPEGs and saves them in the same location as the original files.
+    
+    Features:
+    - Continuous disk space monitoring
+    - Adaptive checking frequency based on available space
+    - Predictive warnings for insufficient space
+    - Pause and resume capability when space is low
     """
     converted_count = 0
     skipped_count = 0
@@ -102,9 +122,19 @@ def convert_raw_to_jpeg(root_directory):
     corrupt_files = []
     
     # Check for sufficient disk space
-    has_space, free_mb = check_disk_space(root_directory)
-    if not has_space:
+    has_space, free_mb, space_status = check_disk_space(root_directory)
+    if not has_space and not args.force:
+        logging.error(f"Insufficient disk space ({free_mb:.2f}MB). Use --force to proceed anyway.")
+        return 0, 0, 0
+    elif not has_space:
         logging.warning(f"Proceeding with low disk space ({free_mb:.2f}MB). Some conversions may fail.")
+        
+    # Initialize disk space monitoring variables
+    space_warning_shown = False
+    space_check_frequency = 5  # Default: check every 5 files
+    paused_for_space = False
+    converted_file_sizes = []  # Track sizes for prediction
+    required_space_mb = args.required_space
     
     # Load conversion log to resume partial conversions
     conversion_log = load_conversion_log(root_directory)
@@ -233,6 +263,57 @@ def convert_raw_to_jpeg(root_directory):
                     # Save log periodically (every 5 files)
                     if converted_count % 5 == 0:
                         save_conversion_log(conversion_log, root_directory)
+                        
+                        # Track converted file size for predictions
+                        jpeg_size = os.path.getsize(output_path) / (1024 * 1024)  # Size in MB
+                        converted_file_sizes.append(jpeg_size)
+                        
+                        # Adaptive disk space checking
+                        # Check more frequently when space is getting low
+                        if converted_count % space_check_frequency == 0:
+                            has_space, free_mb, space_status = check_disk_space(root_directory, required_space_mb)
+                            
+                            # Adjust check frequency based on status
+                            if space_status == 'critical':
+                                space_check_frequency = 1  # Check every file
+                            elif space_status == 'warning':
+                                space_check_frequency = 3  # Check every 3 files
+                            else:
+                                space_check_frequency = 5  # Normal frequency
+                            
+                            # Predictive warning
+                            if len(converted_file_sizes) >= 5:
+                                avg_file_size = sum(converted_file_sizes) / len(converted_file_sizes)
+                                remaining_files = total_raw_files - progress_counter
+                                estimated_space_needed = avg_file_size * remaining_files
+                                
+                                if estimated_space_needed > free_mb:
+                                    logging.warning(f"Predicted space issue: Need ~{estimated_space_needed:.1f}MB for remaining files but only {free_mb:.1f}MB available")
+                                    
+                                    if not args.force and not paused_for_space:
+                                        paused_for_space = True
+                                        print("\nConversion PAUSED due to predicted disk space shortage.")
+                                        print(f"You need approximately {estimated_space_needed:.1f}MB for the remaining {remaining_files} files.")
+                                        print("Options:")
+                                        print("1. Free up disk space and press Enter to continue")
+                                        print("2. Type 'force' to continue anyway (may fail)")
+                                        print("3. Type 'exit' to stop and save progress")
+                                        
+                                        response = input("Your choice: ").strip().lower()
+                                        if response == 'exit':
+                                            print("Saving progress and exiting...")
+                                            save_conversion_log(conversion_log, root_directory)
+                                            save_corrupt_files_log(corrupt_files_log, root_directory)
+                                            return converted_count, skipped_count, error_count
+                                        elif response == 'force':
+                                            print("Continuing conversion despite space warning...")
+                                            args.force = True  # Set force flag to avoid future pauses
+                                        else:
+                                            print("Resuming conversion...")
+                                            # Re-check space after user intervention
+                                            has_space, free_mb, space_status = check_disk_space(root_directory, required_space_mb)
+                                        
+                                        paused_for_space = False
                     
                     # Use a cleaner format for console output with ASCII characters only
                     logging.info(f"Converted: {filename} -> {output_filename}")
@@ -372,7 +453,7 @@ if __name__ == "__main__":
     logging.info(f"Starting directory: {args.directory}")
     
     # Check disk space before starting
-    has_space, free_mb = check_disk_space(args.directory, required_mb=args.required_space)
+    has_space, free_mb, space_status = check_disk_space(args.directory, required_mb=args.required_space)
     logging.info(f"Available disk space: {free_mb:.2f}MB")
     
     if not has_space and not args.force:
@@ -381,7 +462,7 @@ if __name__ == "__main__":
             logging.info("Conversion cancelled due to low disk space")
             exit(0)
     
-    convert_raw_to_jpeg(args.directory)
+    convert_raw_to_jpeg(args.directory, args)
     
     elapsed_time = time.time() - start_time
     logging.info(f"Conversion process completed in {elapsed_time:.2f} seconds")

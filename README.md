@@ -10,7 +10,7 @@ A powerful Python tool for converting raw image files to high-quality JPEGs whil
 - **Progress Tracking**: Clear progress updates showing completion percentage and time estimation
 - **Partial Conversion Handling**: Tracks converted files to avoid redundant processing
 - **Corrupt File Detection**: Identifies problematic files without moving them
-- **Disk Space Checking**: Ensures sufficient space before starting conversion
+- **Continuous Disk Space Monitoring**: Checks space throughout conversion with adaptive frequency, predictive warnings, and pause/resume capability
 - **Directory-Specific Logs**: All logs are saved in the directory being processed
 - **Separate Deletion Tool**: Safely remove original raw files when ready
 
@@ -37,24 +37,24 @@ A powerful Python tool for converting raw image files to high-quality JPEGs whil
 
 #### Converting Raw Images
 
-| Command | Description |
-|---------|-------------|
-| `python convert_raw_images.py` | Basic conversion (starts in current directory) |
-| `python convert_raw_images.py --dir "PATH"` | Convert raw files in specified directory |
-| `python convert_raw_images.py --space 1000` | Set minimum required disk space (MB) |
-| `python convert_raw_images.py --force` | Force conversion despite low disk space |
-| `python convert_raw_images.py --dir "PATH" --space 1000 --force` | Combined options |
+| Command | Description | Default Value |
+|---------|-------------|---------------|
+| `python convert_raw_images.py` | Basic conversion (starts in current directory) | - |
+| `python convert_raw_images.py --dir "PATH"` | Convert raw files in specified directory | Current script directory |
+| `python convert_raw_images.py --space 500` | Set minimum required disk space (MB) for continuous monitoring | 500 MB |
+| `python convert_raw_images.py --force` | Force conversion despite low disk space | False (will warn and stop) |
+| `python convert_raw_images.py --dir "PATH" --space 1000 --force` | Combined options | - |
 
 #### Deleting Original Raw Files
 
-| Command | Description |
-|---------|-------------|
-| `python delete_raw_files.py` | Delete raw files (interactive mode) |
-| `python delete_raw_files.py --dir "PATH"` | Delete raw files in specified directory |
-| `python delete_raw_files.py --force` | Delete without confirmation prompts |
-| `python delete_raw_files.py --batch 100` | Limit deletion to 100 files per run |
-| `python delete_raw_files.py --log "custom_log.json"` | Use custom log filename |
-| `python delete_raw_files.py --dir "PATH" --force --batch 50` | Combined options |
+| Command | Description | Default Value |
+|---------|-------------|---------------|
+| `python delete_raw_files.py` | Delete raw files (interactive mode) | - |
+| `python delete_raw_files.py --dir "PATH"` | Delete raw files in specified directory | Current script directory |
+| `python delete_raw_files.py --force` | Delete without confirmation prompts | False (will ask for confirmation) |
+| `python delete_raw_files.py --batch 100` | Limit deletion to 100 files per run | No limit (all files) |
+| `python delete_raw_files.py --log "custom_log.json"` | Use custom log filename | conversion_log.json |
+| `python delete_raw_files.py --dir "PATH" --force --batch 50` | Combined options | - |
 
 ### Common Examples
 
@@ -106,6 +106,8 @@ Converted: IMG_2558.CR2 -> IMG_2558.jpg
    - Saves it as a JPEG with 95% quality
    - Preserves all metadata (EXIF, IPTC, XMP)
    - Maintains original timestamps
+   - Monitors disk space with adaptive frequency
+   - Provides predictive space warnings
    - Logs the successful conversion
 
 ### Metadata Preservation
@@ -148,7 +150,9 @@ All log files are stored in the directory being processed, not in the script's l
 
 ## Troubleshooting
 
-- **Low disk space warning**: Increase available space or use the `--force` flag
+- **Low disk space warning**: 
+  - When initial check fails: Increase available space or use the `--force` flag
+  - When paused during conversion: Free up space and press Enter to continue, or type 'force' to override
 - **Corrupt file errors**: Check corrupt_files.json for details on problematic files
 - **Missing metadata**: Some cameras use proprietary metadata that may not transfer completely
 
