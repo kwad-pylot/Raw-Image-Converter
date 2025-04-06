@@ -9,6 +9,7 @@ import argparse
 from datetime import datetime
 import logging
 import pyexiv2
+from tqdm import tqdm
 
 # Set up logging
 logging.basicConfig(
@@ -108,10 +109,22 @@ def convert_raw_to_jpeg(root_directory):
     corrupt_files_log = load_corrupt_files_log()
     logging.info(f"Loaded corrupt files log with {len(corrupt_files_log)} previously identified corrupt files")
 
+    # First, count the total number of raw files for the progress bar
+    total_raw_files = 0
+    print("Scanning directories for raw files...")
+    for root, _, files in os.walk(root_directory):
+        for file in files:
+            if file.lower().endswith((".cr2", ".rw2", ".arw", ".nef", ".orf", ".dng", ".raf", ".pef", ".srw")):
+                total_raw_files += 1
+    
+    print(f"Found {total_raw_files} raw files to process")
+    
+    # Create a progress bar for the overall conversion process
+    main_progress = tqdm(total=total_raw_files, desc="Converting raw files", unit="file")
+    
     # Walk through all directories and subdirectories
     for current_dir, subdirs, files in os.walk(root_directory):
         processed_directories += 1
-        print(f"\nScanning directory: {current_dir}")
         
         # Process files in the current directory
         raw_files_found = False
@@ -204,6 +217,9 @@ def convert_raw_to_jpeg(root_directory):
                     
                     logging.info(f"Successfully converted {filename} to {output_filename}")
                     converted_count += 1
+                    
+                    # Update the progress bar
+                    main_progress.update(1)
                 except (rawpy.LibRawFileUnsupportedError, rawpy.LibRawError, OSError, IOError) as e:
                     # Handle all types of raw file errors
                     error_msg = f"Error: Could not process {filename}. File format might be unsupported or corrupted: {e}"
@@ -219,6 +235,9 @@ def convert_raw_to_jpeg(root_directory):
                     corrupt_files.append(input_path)
                     error_count += 1
                     
+                    # Update the progress bar for errors
+                    main_progress.update(1)
+                    
                 except Exception as e:
                     # Handle general conversion errors
                     error_msg = f"Error converting {filename}: {e}"
@@ -233,10 +252,16 @@ def convert_raw_to_jpeg(root_directory):
                     }
                     corrupt_files.append(input_path)
                     error_count += 1
+                    
+                    # Update the progress bar for errors
+                    main_progress.update(1)
         
         if not raw_files_found and len(files) > 0:
             print(f"No raw image files found in this directory.")
 
+    # Close the progress bar
+    main_progress.close()
+    
     # Save the final conversion log
     save_conversion_log(conversion_log)
     

@@ -7,6 +7,7 @@ A powerful Python tool for converting raw image files to high-quality JPEGs whil
 - **Multiple Raw Format Support**: Converts CR2, RW2, ARW, NEF, ORF, DNG, RAF, PEF, and SRW raw formats
 - **Metadata Preservation**: Maintains all important metadata (camera info, exposure settings, etc.)
 - **Timestamp Preservation**: Keeps original file timestamps intact
+- **Progress Bar**: Visual indicator of conversion progress with time estimation
 - **Partial Conversion Handling**: Tracks converted files to avoid redundant processing
 - **Corrupt File Detection**: Identifies problematic files without moving them
 - **Disk Space Checking**: Ensures sufficient space before starting conversion
@@ -19,6 +20,7 @@ A powerful Python tool for converting raw image files to high-quality JPEGs whil
   - rawpy
   - imageio
   - pyexiv2
+  - tqdm
 
 ## Installation
 
@@ -45,6 +47,21 @@ python convert_raw_images.py --dir "C:\Path\To\Your\Photos"
 Additional options:
 ```
 python convert_raw_images.py --dir "C:\Path\To\Your\Photos" --space 1000 --force
+```
+
+#### Progress Bar
+
+The script includes a progress bar that shows:
+- Total number of raw files found
+- Current conversion progress (percentage and count)
+- Estimated time remaining
+- Processing speed (files per second)
+
+Example output:
+```
+Scanning directories for raw files...
+Found 157 raw files to process
+Converting raw files: 45%|████████████▍         | 71/157 [01:23<01:42,  1.12file/s]
 ```
 
 #### Command-line Arguments
