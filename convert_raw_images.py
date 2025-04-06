@@ -139,6 +139,8 @@ def convert_raw_to_jpeg(root_directory, args):
     error_count = 0
     processed_directories = 0
     corrupt_files = []
+    session_processed = 0  # Track files processed in current session
+    session_skipped = 0    # Track files skipped in current session
     
     # Check for sufficient disk space
     has_space, free_mb, space_status = check_disk_space(root_directory)
@@ -202,12 +204,14 @@ def convert_raw_to_jpeg(root_directory, args):
                 if input_path in conversion_log:
                     logging.info(f"Skipping: {filename} in {current_dir} (found in conversion log)")
                     skipped_count += 1
+                    session_skipped += 1  # Track skipped files in this session
                     continue
                     
                 # Check if the converted file already exists
                 if os.path.exists(output_path):
                     logging.info(f"Skipping: {filename} in {current_dir} (output file already exists)")
                     skipped_count += 1
+                    session_skipped += 1  # Track skipped files in this session
                     continue
 
                 try:
@@ -324,7 +328,7 @@ def convert_raw_to_jpeg(root_directory, args):
                             # Predictive warning
                             if len(converted_file_sizes) >= 5:
                                 avg_file_size = sum(converted_file_sizes) / len(converted_file_sizes)
-                                remaining_files = total_raw_files - progress_counter
+                                remaining_files = total_raw_files - total_processed
                                 estimated_space_needed = avg_file_size * remaining_files
                                 
                                 if estimated_space_needed > free_mb:
@@ -362,8 +366,8 @@ def convert_raw_to_jpeg(root_directory, args):
                     # Increment session counter
                     session_processed += 1
                     
-                    # Calculate total progress
-                    total_processed = previously_processed + session_processed
+                    # Calculate total progress including skipped files in this session
+                    total_processed = previously_processed + session_processed + session_skipped
                     
                     # Show progress with speed for every file
                     percent_done = (total_processed / total_raw_files) * 100 if total_raw_files > 0 else 0
@@ -397,8 +401,8 @@ def convert_raw_to_jpeg(root_directory, args):
                     # Increment session counter for errors
                     session_processed += 1
                     
-                    # Calculate total progress
-                    total_processed = previously_processed + session_processed
+                    # Calculate total progress including skipped files in this session
+                    total_processed = previously_processed + session_processed + session_skipped
                     
                     # Show progress with speed for errors too
                     percent_done = (total_processed / total_raw_files) * 100 if total_raw_files > 0 else 0
@@ -427,8 +431,8 @@ def convert_raw_to_jpeg(root_directory, args):
                     # Increment session counter for errors
                     session_processed += 1
                     
-                    # Calculate total progress
-                    total_processed = previously_processed + session_processed
+                    # Calculate total progress including skipped files in this session
+                    total_processed = previously_processed + session_processed + session_skipped
                     
                     # Show progress with speed for errors too
                     percent_done = (total_processed / total_raw_files) * 100 if total_raw_files > 0 else 0
@@ -511,6 +515,13 @@ if __name__ == "__main__":
             handler.addFilter(PyExiv2Filter(verbose=args.verbose))
             # Use a cleaner format for console output
             handler.setFormatter(logging.Formatter('%(message)s'))
+    
+    # Set pyexiv2 log level based on verbose mode
+    # Log levels: 0=debug, 1=info, 2=warn, 3=error, 4=mute
+    if not args.verbose:
+        pyexiv2.set_log_level(4)  # Completely mute all messages
+    else:
+        pyexiv2.set_log_level(2)  # Show warnings and errors (default)
     
     start_time = time.time()
     logging.info("Starting raw image conversion process")
