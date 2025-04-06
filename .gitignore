@@ -1,0 +1,27 @@
+# Python bytecode files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Virtual environments
+.venv/
+venv/
+ENV/
+
+# Log files
+*.log
+
+# Conversion and deletion logs (optional - remove these lines if you want to include these in the repo)
+conversion_log.json
+corrupt_files.json
+deletion_log.json
+
+# OS specific files
+.DS_Store
+Thumbs.db
+
+# IDE specific files
+.idea/
+.vscode/
+*.swp
+*.swo
