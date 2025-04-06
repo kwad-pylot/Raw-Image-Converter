@@ -293,8 +293,9 @@ def convert_raw_to_jpeg(root_directory, args):
                                 # Restore original logging level
                                 logging.getLogger().setLevel(log_level)
                         
-                        logging.info(f"Preserved metadata for {filename}")
+                        # Metadata preservation info will be shown after conversion
                     except Exception as e:
+                        logging.warning(f"Directory: {current_dir}")
                         logging.warning(f"Could not preserve metadata for {filename}: {e}")
                     
                     # Add to conversion log
@@ -360,7 +361,17 @@ def convert_raw_to_jpeg(root_directory, args):
                                         paused_for_space = False
                     
                     # Use a cleaner format for console output with ASCII characters only
-                    logging.info(f"Converted: {filename} -> {output_filename}")
+                    # Calculate progress first
+                    percent_done = (total_processed / total_raw_files) * 100 if total_raw_files > 0 else 0
+                    elapsed = time.time() - start_process_time
+                    files_per_second = session_processed / elapsed if elapsed > 0 else 0
+                    
+                    # Show full information in the order the user wants
+                    print(f"Progress: {total_processed}/{total_raw_files} files ({percent_done:.1f}%) - {files_per_second:.2f} files/sec")
+                    print(f"Directory: {current_dir}")
+                    print(f"Preserved metadata for {filename}")
+                    print(f"Converted: {filename} -> {output_filename}")
+                    print("-----------------------------------------------")
                     converted_count += 1
                     
                     # Increment session counter
@@ -369,14 +380,7 @@ def convert_raw_to_jpeg(root_directory, args):
                     # Calculate total progress including skipped files in this session
                     total_processed = previously_processed + session_processed + session_skipped
                     
-                    # Show progress with speed for every file
-                    percent_done = (total_processed / total_raw_files) * 100 if total_raw_files > 0 else 0
-                    elapsed = time.time() - start_process_time
-                    
-                    # Calculate files per second based on this session only
-                    files_per_second = session_processed / elapsed if elapsed > 0 else 0
-                    
-                    print(f"Progress: {total_processed}/{total_raw_files} files ({percent_done:.1f}%) - {files_per_second:.2f} files/sec")
+                    # Progress information is already shown above
                     
                     # Show estimated time remaining every 10 files or when we reach multiples of 1%
                     if session_processed % 10 == 0 or session_processed % max(1, int(total_raw_files/100)) == 0:
@@ -385,8 +389,15 @@ def convert_raw_to_jpeg(root_directory, args):
                         print(f"  Est. remaining: {estimated_remaining/60:.1f} min")
                 except (rawpy.LibRawFileUnsupportedError, rawpy.LibRawError, OSError, IOError) as e:
                     # Handle all types of raw file errors
-                    error_msg = f"Error: Could not process {filename}. File format might be unsupported or corrupted: {e}"
-                    logging.error(error_msg)
+                    # Show error with progress information
+                    percent_done = (total_processed / total_raw_files) * 100 if total_raw_files > 0 else 0
+                    elapsed = time.time() - start_process_time
+                    files_per_second = session_processed / elapsed if elapsed > 0 else 0
+                    
+                    print(f"Progress: {total_processed}/{total_raw_files} files ({percent_done:.1f}%) - {files_per_second:.2f} files/sec")
+                    print(f"Directory: {current_dir}")
+                    print(f"Error: Could not process {filename}. File format might be unsupported or corrupted: {e}")
+                    print("-----------------------------------------------")
                     
                     # Add to corrupt files log instead of moving the file
                     corrupt_files_log[input_path] = {
@@ -404,19 +415,19 @@ def convert_raw_to_jpeg(root_directory, args):
                     # Calculate total progress including skipped files in this session
                     total_processed = previously_processed + session_processed + session_skipped
                     
-                    # Show progress with speed for errors too
-                    percent_done = (total_processed / total_raw_files) * 100 if total_raw_files > 0 else 0
-                    elapsed = time.time() - start_process_time
-                    
-                    # Calculate files per second based on this session only
-                    files_per_second = session_processed / elapsed if elapsed > 0 else 0
-                    
-                    print(f"Progress: {total_processed}/{total_raw_files} files ({percent_done:.1f}%) - {files_per_second:.2f} files/sec")
+                    # Progress information is already shown at the top of each file output
                     
                 except Exception as e:
                     # Handle general conversion errors
-                    error_msg = f"Error converting {filename}: {e}"
-                    logging.error(error_msg)
+                    # Show error with progress information
+                    percent_done = (total_processed / total_raw_files) * 100 if total_raw_files > 0 else 0
+                    elapsed = time.time() - start_process_time
+                    files_per_second = session_processed / elapsed if elapsed > 0 else 0
+                    
+                    print(f"Progress: {total_processed}/{total_raw_files} files ({percent_done:.1f}%) - {files_per_second:.2f} files/sec")
+                    print(f"Directory: {current_dir}")
+                    print(f"Error converting {filename}: {e}")
+                    print("-----------------------------------------------")
                     
                     # Add to corrupt files log
                     corrupt_files_log[input_path] = {
@@ -434,14 +445,7 @@ def convert_raw_to_jpeg(root_directory, args):
                     # Calculate total progress including skipped files in this session
                     total_processed = previously_processed + session_processed + session_skipped
                     
-                    # Show progress with speed for errors too
-                    percent_done = (total_processed / total_raw_files) * 100 if total_raw_files > 0 else 0
-                    elapsed = time.time() - start_process_time
-                    
-                    # Calculate files per second based on this session only
-                    files_per_second = session_processed / elapsed if elapsed > 0 else 0
-                    
-                    print(f"Progress: {total_processed}/{total_raw_files} files ({percent_done:.1f}%) - {files_per_second:.2f} files/sec")
+                    # Progress information is already shown at the top of each file output
         
         if not raw_files_found and len(files) > 0:
             print(f"No raw image files found in directory: {current_dir}")
