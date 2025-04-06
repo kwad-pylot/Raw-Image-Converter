@@ -202,14 +202,72 @@ def convert_raw_to_jpeg(root_directory, args):
 
                 # Check if file was previously converted successfully (from log)
                 if input_path in conversion_log:
-                    logging.info(f"Skipping: {filename} in {current_dir} (found in conversion log)")
+                    # Calculate progress for display
+                    total_processed = previously_processed + session_processed + session_skipped
+                    percent_done = (total_processed / total_raw_files) * 100 if total_raw_files > 0 else 0
+                    elapsed = time.time() - start_process_time
+                    files_per_second = session_processed / elapsed if elapsed > 0 else 0
+                    
+                    # Check disk space for auto-pause information
+                    has_space, free_mb, space_status = check_disk_space(root_directory, required_space_mb)
+                    
+                    # Calculate space remaining until auto-pause would trigger
+                    space_until_pause = free_mb - required_space_mb
+                    
+                    # Calculate estimated remaining time
+                    remaining_files = total_raw_files - total_processed
+                    if files_per_second > 0:
+                        estimated_seconds = remaining_files / files_per_second
+                        hours, remainder = divmod(estimated_seconds, 3600)
+                        minutes, seconds = divmod(remainder, 60)
+                        estimated_time = f"{int(hours)}h {int(minutes)}m {int(seconds)}s"
+                    else:
+                        estimated_time = "calculating..."
+                    
+                    # Show progress and skipped file information
+                    print(f"Progress: {total_processed}/{total_raw_files} files ({percent_done:.1f}%) - {files_per_second:.2f} files/sec")
+                    print(f"Directory: {current_dir}")
+                    print(f"Est. remaining time: {estimated_time}")
+                    print(f"Space until auto-pause: {space_until_pause:.1f} MB")
+                    print(f"Skipping: {filename} (found in conversion log)")
+                    print("-----------------------------------------------")
+                    
                     skipped_count += 1
                     session_skipped += 1  # Track skipped files in this session
                     continue
                     
                 # Check if the converted file already exists
                 if os.path.exists(output_path):
-                    logging.info(f"Skipping: {filename} in {current_dir} (output file already exists)")
+                    # Calculate progress for display
+                    total_processed = previously_processed + session_processed + session_skipped
+                    percent_done = (total_processed / total_raw_files) * 100 if total_raw_files > 0 else 0
+                    elapsed = time.time() - start_process_time
+                    files_per_second = session_processed / elapsed if elapsed > 0 else 0
+                    
+                    # Check disk space for auto-pause information
+                    has_space, free_mb, space_status = check_disk_space(root_directory, required_space_mb)
+                    
+                    # Calculate space remaining until auto-pause would trigger
+                    space_until_pause = free_mb - required_space_mb
+                    
+                    # Calculate estimated remaining time
+                    remaining_files = total_raw_files - total_processed
+                    if files_per_second > 0:
+                        estimated_seconds = remaining_files / files_per_second
+                        hours, remainder = divmod(estimated_seconds, 3600)
+                        minutes, seconds = divmod(remainder, 60)
+                        estimated_time = f"{int(hours)}h {int(minutes)}m {int(seconds)}s"
+                    else:
+                        estimated_time = "calculating..."
+                    
+                    # Show progress and skipped file information
+                    print(f"Progress: {total_processed}/{total_raw_files} files ({percent_done:.1f}%) - {files_per_second:.2f} files/sec")
+                    print(f"Directory: {current_dir}")
+                    print(f"Est. remaining time: {estimated_time}")
+                    print(f"Space until auto-pause: {space_until_pause:.1f} MB")
+                    print(f"Skipping: {filename} (output file already exists)")
+                    print("-----------------------------------------------")
+                    
                     skipped_count += 1
                     session_skipped += 1  # Track skipped files in this session
                     continue
@@ -366,9 +424,27 @@ def convert_raw_to_jpeg(root_directory, args):
                     elapsed = time.time() - start_process_time
                     files_per_second = session_processed / elapsed if elapsed > 0 else 0
                     
+                    # Check disk space for auto-pause information
+                    has_space, free_mb, space_status = check_disk_space(root_directory, required_space_mb)
+                    
+                    # Calculate space remaining until auto-pause would trigger
+                    space_until_pause = free_mb - required_space_mb
+                    
+                    # Calculate estimated remaining time
+                    remaining_files = total_raw_files - total_processed
+                    if files_per_second > 0:
+                        estimated_seconds = remaining_files / files_per_second
+                        hours, remainder = divmod(estimated_seconds, 3600)
+                        minutes, seconds = divmod(remainder, 60)
+                        estimated_time = f"{int(hours)}h {int(minutes)}m {int(seconds)}s"
+                    else:
+                        estimated_time = "calculating..."
+                    
                     # Show full information in the order the user wants
                     print(f"Progress: {total_processed}/{total_raw_files} files ({percent_done:.1f}%) - {files_per_second:.2f} files/sec")
                     print(f"Directory: {current_dir}")
+                    print(f"Est. remaining time: {estimated_time}")
+                    print(f"Space until auto-pause: {space_until_pause:.1f} MB")
                     print(f"Preserved metadata for {filename}")
                     print(f"Converted: {filename} -> {output_filename}")
                     print("-----------------------------------------------")
@@ -382,20 +458,41 @@ def convert_raw_to_jpeg(root_directory, args):
                     
                     # Progress information is already shown above
                     
-                    # Show estimated time remaining every 10 files or when we reach multiples of 1%
-                    if session_processed % 10 == 0 or session_processed % max(1, int(total_raw_files/100)) == 0:
-                        remaining_files = total_raw_files - total_processed
-                        estimated_remaining = remaining_files / files_per_second if files_per_second > 0 else 0
-                        print(f"  Est. remaining: {estimated_remaining/60:.1f} min")
+                    # No need to show estimated time remaining every 10 files anymore
+                    # since we're now showing it with every file operation
                 except (rawpy.LibRawFileUnsupportedError, rawpy.LibRawError, OSError, IOError) as e:
                     # Handle all types of raw file errors
+                    # Increment session counter for errors
+                    session_processed += 1
+                    
+                    # Calculate total progress including skipped files in this session
+                    total_processed = previously_processed + session_processed + session_skipped
+                    
                     # Show error with progress information
                     percent_done = (total_processed / total_raw_files) * 100 if total_raw_files > 0 else 0
                     elapsed = time.time() - start_process_time
                     files_per_second = session_processed / elapsed if elapsed > 0 else 0
                     
+                    # Check disk space for auto-pause information
+                    has_space, free_mb, space_status = check_disk_space(root_directory, required_space_mb)
+                    
+                    # Calculate space remaining until auto-pause would trigger
+                    space_until_pause = free_mb - required_space_mb
+                    
+                    # Calculate estimated remaining time
+                    remaining_files = total_raw_files - total_processed
+                    if files_per_second > 0:
+                        estimated_seconds = remaining_files / files_per_second
+                        hours, remainder = divmod(estimated_seconds, 3600)
+                        minutes, seconds = divmod(remainder, 60)
+                        estimated_time = f"{int(hours)}h {int(minutes)}m {int(seconds)}s"
+                    else:
+                        estimated_time = "calculating..."
+                    
                     print(f"Progress: {total_processed}/{total_raw_files} files ({percent_done:.1f}%) - {files_per_second:.2f} files/sec")
                     print(f"Directory: {current_dir}")
+                    print(f"Est. remaining time: {estimated_time}")
+                    print(f"Space until auto-pause: {space_until_pause:.1f} MB")
                     print(f"Error: Could not process {filename}. File format might be unsupported or corrupted: {e}")
                     print("-----------------------------------------------")
                     
@@ -409,23 +506,41 @@ def convert_raw_to_jpeg(root_directory, args):
                     corrupt_files.append(input_path)
                     error_count += 1
                     
+                    # Progress information is already shown at the top of each file output
+                    
+                except Exception as e:
+                    # Handle general conversion errors
                     # Increment session counter for errors
                     session_processed += 1
                     
                     # Calculate total progress including skipped files in this session
                     total_processed = previously_processed + session_processed + session_skipped
                     
-                    # Progress information is already shown at the top of each file output
-                    
-                except Exception as e:
-                    # Handle general conversion errors
                     # Show error with progress information
                     percent_done = (total_processed / total_raw_files) * 100 if total_raw_files > 0 else 0
                     elapsed = time.time() - start_process_time
                     files_per_second = session_processed / elapsed if elapsed > 0 else 0
                     
+                    # Check disk space for auto-pause information
+                    has_space, free_mb, space_status = check_disk_space(root_directory, required_space_mb)
+                    
+                    # Calculate space remaining until auto-pause would trigger
+                    space_until_pause = free_mb - required_space_mb
+                    
+                    # Calculate estimated remaining time
+                    remaining_files = total_raw_files - total_processed
+                    if files_per_second > 0:
+                        estimated_seconds = remaining_files / files_per_second
+                        hours, remainder = divmod(estimated_seconds, 3600)
+                        minutes, seconds = divmod(remainder, 60)
+                        estimated_time = f"{int(hours)}h {int(minutes)}m {int(seconds)}s"
+                    else:
+                        estimated_time = "calculating..."
+                    
                     print(f"Progress: {total_processed}/{total_raw_files} files ({percent_done:.1f}%) - {files_per_second:.2f} files/sec")
                     print(f"Directory: {current_dir}")
+                    print(f"Est. remaining time: {estimated_time}")
+                    print(f"Space until auto-pause: {space_until_pause:.1f} MB")
                     print(f"Error converting {filename}: {e}")
                     print("-----------------------------------------------")
                     
@@ -438,12 +553,6 @@ def convert_raw_to_jpeg(root_directory, args):
                     }
                     corrupt_files.append(input_path)
                     error_count += 1
-                    
-                    # Increment session counter for errors
-                    session_processed += 1
-                    
-                    # Calculate total progress including skipped files in this session
-                    total_processed = previously_processed + session_processed + session_skipped
                     
                     # Progress information is already shown at the top of each file output
         

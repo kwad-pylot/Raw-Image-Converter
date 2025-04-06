@@ -7,7 +7,7 @@ A powerful Python tool for converting raw image files to high-quality JPEGs whil
 - **Multiple Raw Format Support**: Converts CR2, RW2, ARW, NEF, ORF, DNG, RAF, PEF, and SRW raw formats
 - **Metadata Preservation**: Maintains all important metadata (camera info, exposure settings, etc.)
 - **Timestamp Preservation**: Keeps original file timestamps intact
-- **Progress Tracking**: Clear progress updates showing completion percentage and time estimation
+- **Enhanced Progress Tracking**: Clear progress updates showing completion percentage, time estimation, remaining disk space, and visual separators between file operations
 - **Partial Conversion Handling**: Tracks converted files to avoid redundant processing
 - **Corrupt File Detection**: Identifies problematic files without moving them
 - **Continuous Disk Space Monitoring**: Checks space throughout conversion with adaptive frequency, predictive warnings, and pause/resume capability
@@ -85,17 +85,31 @@ The script provides clear progress updates that show:
 - Total number of raw files found
 - Current conversion progress (count and percentage)
 - Processing speed (files per second)
-- Estimated time remaining
+- Estimated time remaining for the entire conversion
+- Space remaining until auto-pause would activate
+- Visual separators between different file operations
 
 Example output:
 ```
 Scanning directories for raw files...
 Found 157 raw files to process
 Starting conversion of 157 raw files...
+
+Progress: 10/157 files (6.4%) - 1.25 files/sec
+Directory: C:\Users\Photos\Vacation2023
+Est. remaining time: 1h 58m 5s
+Space until auto-pause: 1256.7 MB
+Preserved metadata for IMG_2554.CR2
 Converted: IMG_2554.CR2 -> IMG_2554.jpg
+-----------------------------------------------
+
+Progress: 11/157 files (7.0%) - 1.27 files/sec
+Directory: C:\Users\Photos\Vacation2023
+Est. remaining time: 1h 55m 12s
+Space until auto-pause: 1255.9 MB
+Preserved metadata for IMG_2557.CR2
 Converted: IMG_2557.CR2 -> IMG_2557.jpg
-Progress: 10/157 files (6.4%) - 1.25 files/sec - Est. remaining: 117.6 min
-Converted: IMG_2558.CR2 -> IMG_2558.jpg
+-----------------------------------------------
 ```
 
 ## How It Works
