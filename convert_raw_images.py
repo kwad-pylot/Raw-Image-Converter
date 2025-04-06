@@ -15,8 +15,10 @@ from tqdm import tqdm
 # Create a custom filter to suppress pyexiv2 warnings
 class PyExiv2Filter(logging.Filter):
     def filter(self, record):
-        return not (record.getMessage().startswith('[warn] Exif tag') or 
-                   record.getMessage().startswith('[warn] Directory Thumbnail'))
+        message = record.getMessage()
+        if '[warn]' in message and ('Exif tag' in message or 'Directory Thumbnail' in message):
+            return False
+        return True
 
 # Set up logging - will be configured when the script runs with the correct directory
 
@@ -186,7 +188,8 @@ def convert_raw_to_jpeg(root_directory):
                     try:
                         # Temporarily redirect stderr to suppress pyexiv2 warnings
                         original_stderr = sys.stderr
-                        sys.stderr = open(os.devnull, 'w')
+                        null_file = open(os.devnull, 'w')
+                        sys.stderr = null_file
                         
                         # Open both source and target images
                         source_metadata = pyexiv2.Image(input_path)
@@ -210,7 +213,7 @@ def convert_raw_to_jpeg(root_directory):
                         source_metadata.close()
                         
                         # Restore stderr
-                        sys.stderr.close()
+                        null_file.close()
                         sys.stderr = original_stderr
                         
                         logging.info(f"Preserved metadata for {filename}")
@@ -228,8 +231,8 @@ def convert_raw_to_jpeg(root_directory):
                     if converted_count % 5 == 0:
                         save_conversion_log(conversion_log, root_directory)
                     
-                    # Use a cleaner format for console output
-                    logging.info(f"Converted: {filename} → {output_filename}")
+                    # Use a cleaner format for console output with ASCII characters only
+                    logging.info(f"Converted: {filename} -> {output_filename}")
                     converted_count += 1
                     
                     # Update the progress bar
