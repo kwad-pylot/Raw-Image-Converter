@@ -11,15 +11,7 @@ import logging
 import pyexiv2
 from tqdm import tqdm
 
-# Set up logging
-logging.basicConfig(
-    level=logging.INFO,
-    format='%(asctime)s - %(levelname)s - %(message)s',
-    handlers=[
-        logging.FileHandler('raw_conversion.log'),
-        logging.StreamHandler()
-    ]
-)
+# Set up logging - will be configured when the script runs with the correct directory
 
 def check_disk_space(directory, required_mb=500):
     """
@@ -39,48 +31,52 @@ def check_disk_space(directory, required_mb=500):
         logging.error(f"Error checking disk space: {e}")
         return False, 0
 
-def load_conversion_log(log_file='conversion_log.json'):
+def load_conversion_log(root_directory, log_file='conversion_log.json'):
     """
-    Load the conversion log from a JSON file.
+    Load the conversion log from a JSON file in the specified root directory.
     Returns a dictionary of successfully converted files.
     """
-    if os.path.exists(log_file):
+    log_path = os.path.join(root_directory, log_file)
+    if os.path.exists(log_path):
         try:
-            with open(log_file, 'r') as f:
+            with open(log_path, 'r') as f:
                 return json.load(f)
         except Exception as e:
             logging.error(f"Error loading conversion log: {e}")
     return {}
 
-def save_conversion_log(conversion_log, log_file='conversion_log.json'):
+def save_conversion_log(conversion_log, root_directory, log_file='conversion_log.json'):
     """
-    Save the conversion log to a JSON file.
+    Save the conversion log to a JSON file in the specified root directory.
     """
+    log_path = os.path.join(root_directory, log_file)
     try:
-        with open(log_file, 'w') as f:
+        with open(log_path, 'w') as f:
             json.dump(conversion_log, f, indent=4)
     except Exception as e:
         logging.error(f"Error saving conversion log: {e}")
 
-def load_corrupt_files_log(log_file='corrupt_files.json'):
+def load_corrupt_files_log(root_directory, log_file='corrupt_files.json'):
     """
-    Load the list of corrupt files from a JSON file.
+    Load the list of corrupt files from a JSON file in the specified root directory.
     Returns a dictionary with corrupt file paths and error details.
     """
-    if os.path.exists(log_file):
+    log_path = os.path.join(root_directory, log_file)
+    if os.path.exists(log_path):
         try:
-            with open(log_file, 'r') as f:
+            with open(log_path, 'r') as f:
                 return json.load(f)
         except Exception as e:
             logging.error(f"Error loading corrupt files log: {e}")
     return {}
 
-def save_corrupt_files_log(corrupt_files_log, log_file='corrupt_files.json'):
+def save_corrupt_files_log(corrupt_files_log, root_directory, log_file='corrupt_files.json'):
     """
-    Save the corrupt files log to a JSON file.
+    Save the corrupt files log to a JSON file in the specified root directory.
     """
+    log_path = os.path.join(root_directory, log_file)
     try:
-        with open(log_file, 'w') as f:
+        with open(log_path, 'w') as f:
             json.dump(corrupt_files_log, f, indent=4)
     except Exception as e:
         logging.error(f"Error saving corrupt files log: {e}")
@@ -102,11 +98,11 @@ def convert_raw_to_jpeg(root_directory):
         logging.warning(f"Proceeding with low disk space ({free_mb:.2f}MB). Some conversions may fail.")
     
     # Load conversion log to resume partial conversions
-    conversion_log = load_conversion_log()
+    conversion_log = load_conversion_log(root_directory)
     logging.info(f"Loaded conversion log with {len(conversion_log)} previously converted files")
     
     # Load corrupt files log
-    corrupt_files_log = load_corrupt_files_log()
+    corrupt_files_log = load_corrupt_files_log(root_directory)
     logging.info(f"Loaded corrupt files log with {len(corrupt_files_log)} previously identified corrupt files")
 
     # First, count the total number of raw files for the progress bar
@@ -213,7 +209,7 @@ def convert_raw_to_jpeg(root_directory):
                     
                     # Save log periodically (every 5 files)
                     if converted_count % 5 == 0:
-                        save_conversion_log(conversion_log)
+                        save_conversion_log(conversion_log, root_directory)
                     
                     logging.info(f"Successfully converted {filename} to {output_filename}")
                     converted_count += 1
@@ -263,11 +259,11 @@ def convert_raw_to_jpeg(root_directory):
     main_progress.close()
     
     # Save the final conversion log
-    save_conversion_log(conversion_log)
+    save_conversion_log(conversion_log, root_directory)
     
     # Save the corrupt files log
     if corrupt_files:
-        save_corrupt_files_log(corrupt_files_log)
+        save_corrupt_files_log(corrupt_files_log, root_directory)
     
     # Final summary
     logging.info("\nConversion Summary:")
@@ -303,6 +299,17 @@ if __name__ == "__main__":
     if not os.path.isdir(args.directory):
         print(f"Error: The specified directory '{args.directory}' does not exist or is not a directory.")
         exit(1)
+        
+    # Set up logging with log file in the target directory
+    log_file = os.path.join(args.directory, 'raw_conversion.log')
+    logging.basicConfig(
+        level=logging.INFO,
+        format='%(asctime)s - %(levelname)s - %(message)s',
+        handlers=[
+            logging.FileHandler(log_file),
+            logging.StreamHandler()
+        ]
+    )
     
     start_time = time.time()
     logging.info("Starting raw image conversion process")

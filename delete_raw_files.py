@@ -4,33 +4,26 @@ import logging
 import argparse
 from datetime import datetime
 
-# Set up logging
-logging.basicConfig(
-    level=logging.INFO,
-    format='%(asctime)s - %(levelname)s - %(message)s',
-    handlers=[
-        logging.FileHandler('deletion_log.log'),
-        logging.StreamHandler()
-    ]
-)
+# Set up logging - will be configured when the script runs with the correct directory
 
-def load_conversion_log(log_file='conversion_log.json'):
+def load_conversion_log(directory, log_file='conversion_log.json'):
     """
-    Load the conversion log from a JSON file.
+    Load the conversion log from a JSON file in the specified directory.
     Returns a dictionary of successfully converted files.
     """
-    if os.path.exists(log_file):
+    log_path = os.path.join(directory, log_file)
+    if os.path.exists(log_path):
         try:
-            with open(log_file, 'r') as f:
+            with open(log_path, 'r') as f:
                 return json.load(f)
         except Exception as e:
             logging.error(f"Error loading conversion log: {e}")
             return {}
     else:
-        logging.error(f"Conversion log file not found: {log_file}")
+        logging.error(f"Conversion log file not found: {log_path}")
         return {}
 
-def delete_raw_files(conversion_log_path='conversion_log.json', confirm=True, batch_size=None):
+def delete_raw_files(directory, conversion_log_name='conversion_log.json', confirm=True, batch_size=None):
     """
     Delete original raw files that have been successfully converted.
     
@@ -43,7 +36,7 @@ def delete_raw_files(conversion_log_path='conversion_log.json', confirm=True, ba
         tuple: (deleted_count, skipped_count, error_count)
     """
     # Load the conversion log
-    conversion_log = load_conversion_log(conversion_log_path)
+    conversion_log = load_conversion_log(directory, conversion_log_name)
     
     if not conversion_log:
         logging.warning("No converted files found in the log. Nothing to delete.")
@@ -133,9 +126,10 @@ def delete_raw_files(conversion_log_path='conversion_log.json', confirm=True, ba
     
     # Save deletion log
     try:
-        with open('deletion_log.json', 'w') as f:
+        deletion_log_path = os.path.join(directory, 'deletion_log.json')
+        with open(deletion_log_path, 'w') as f:
             json.dump(deletion_log, f, indent=4)
-        logging.info(f"Deletion log saved to deletion_log.json")
+        logging.info(f"Deletion log saved to {deletion_log_path}")
     except Exception as e:
         logging.error(f"Failed to save deletion log: {e}")
     
@@ -149,13 +143,33 @@ def delete_raw_files(conversion_log_path='conversion_log.json', confirm=True, ba
 
 def main():
     parser = argparse.ArgumentParser(description='Delete raw image files that have been successfully converted')
-    parser.add_argument('--log', default='conversion_log.json', help='Path to the conversion log JSON file')
+    parser.add_argument('--dir', '-d', dest='directory',
+                        help='Directory containing the conversion logs (default: script location)',
+                        default=os.path.dirname(os.path.abspath(__file__)))
+    parser.add_argument('--log', default='conversion_log.json', help='Name of the conversion log file')
     parser.add_argument('--force', action='store_true', help='Delete without confirmation')
     parser.add_argument('--batch', type=int, help='Limit the number of files to delete in one run')
     args = parser.parse_args()
     
+    # Validate the directory
+    if not os.path.isdir(args.directory):
+        print(f"Error: The specified directory '{args.directory}' does not exist or is not a directory.")
+        exit(1)
+    
+    # Set up logging with log file in the target directory
+    log_file = os.path.join(args.directory, 'deletion_log.log')
+    logging.basicConfig(
+        level=logging.INFO,
+        format='%(asctime)s - %(levelname)s - %(message)s',
+        handlers=[
+            logging.FileHandler(log_file),
+            logging.StreamHandler()
+        ]
+    )
+    
     delete_raw_files(
-        conversion_log_path=args.log,
+        directory=args.directory,
+        conversion_log_name=args.log,
         confirm=not args.force,
         batch_size=args.batch
     )
