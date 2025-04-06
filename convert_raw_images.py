@@ -161,8 +161,8 @@ def convert_raw_to_jpeg(root_directory, args):
     print(f"Starting conversion of {total_raw_files} raw files...")
     print(f"Already processed: {previously_processed} files")
     
-    # Initialize progress counter with previously processed files
-    progress_counter = previously_processed
+    # Initialize counters
+    session_processed = 0  # Files processed in this session
     start_process_time = time.time()
     
     # Walk through all directories and subdirectories
@@ -324,25 +324,27 @@ def convert_raw_to_jpeg(root_directory, args):
                     logging.info(f"Converted: {filename} -> {output_filename}")
                     converted_count += 1
                     
-                    # Update progress counter
-                    progress_counter += 1
-                    # Show progress with speed for every file
-                    percent_done = (progress_counter / total_raw_files) * 100 if total_raw_files > 0 else 0
-                    elapsed = time.time() - start_process_time
+                    # Increment session counter
+                    session_processed += 1
                     
-                    # Calculate files processed in this session
-                    session_processed = converted_count + skipped_count + error_count
+                    # Calculate total progress
+                    total_processed = previously_processed + session_processed
+                    
+                    # Show progress with speed for every file
+                    percent_done = (total_processed / total_raw_files) * 100 if total_raw_files > 0 else 0
+                    elapsed = time.time() - start_process_time
                     
                     # Calculate files per second based on this session only
                     files_per_second = session_processed / elapsed if elapsed > 0 else 0
                     
-                    print(f"Progress: {progress_counter}/{total_raw_files} files ({percent_done:.1f}%) - {files_per_second:.2f} files/sec")
+                    print(f"Progress: {total_processed}/{total_raw_files} files ({percent_done:.1f}%) - {files_per_second:.2f} files/sec")
                     if previously_processed > 0:
                         print(f"  ({previously_processed} previously processed, {session_processed} in this session)")
                     
                     # Show estimated time remaining every 10 files or when we reach multiples of 1%
-                    if progress_counter % 10 == 0 or progress_counter % max(1, int(total_raw_files/100)) == 0:
-                        estimated_remaining = (total_raw_files - progress_counter) / files_per_second if files_per_second > 0 else 0
+                    if session_processed % 10 == 0 or session_processed % max(1, int(total_raw_files/100)) == 0:
+                        remaining_files = total_raw_files - total_processed
+                        estimated_remaining = remaining_files / files_per_second if files_per_second > 0 else 0
                         print(f"  Est. remaining: {estimated_remaining/60:.1f} min")
                 except (rawpy.LibRawFileUnsupportedError, rawpy.LibRawError, OSError, IOError) as e:
                     # Handle all types of raw file errors
@@ -359,19 +361,20 @@ def convert_raw_to_jpeg(root_directory, args):
                     corrupt_files.append(input_path)
                     error_count += 1
                     
-                    # Update progress counter for errors
-                    progress_counter += 1
-                    # Show progress with speed for errors too
-                    percent_done = (progress_counter / total_raw_files) * 100 if total_raw_files > 0 else 0
-                    elapsed = time.time() - start_process_time
+                    # Increment session counter for errors
+                    session_processed += 1
                     
-                    # Calculate files processed in this session
-                    session_processed = converted_count + skipped_count + error_count
+                    # Calculate total progress
+                    total_processed = previously_processed + session_processed
+                    
+                    # Show progress with speed for errors too
+                    percent_done = (total_processed / total_raw_files) * 100 if total_raw_files > 0 else 0
+                    elapsed = time.time() - start_process_time
                     
                     # Calculate files per second based on this session only
                     files_per_second = session_processed / elapsed if elapsed > 0 else 0
                     
-                    print(f"Progress: {progress_counter}/{total_raw_files} files ({percent_done:.1f}%) - {files_per_second:.2f} files/sec")
+                    print(f"Progress: {total_processed}/{total_raw_files} files ({percent_done:.1f}%) - {files_per_second:.2f} files/sec")
                     if previously_processed > 0:
                         print(f"  ({previously_processed} previously processed, {session_processed} in this session)")
                     
@@ -390,19 +393,20 @@ def convert_raw_to_jpeg(root_directory, args):
                     corrupt_files.append(input_path)
                     error_count += 1
                     
-                    # Update progress counter for errors
-                    progress_counter += 1
-                    # Show progress with speed for errors too
-                    percent_done = (progress_counter / total_raw_files) * 100 if total_raw_files > 0 else 0
-                    elapsed = time.time() - start_process_time
+                    # Increment session counter for errors
+                    session_processed += 1
                     
-                    # Calculate files processed in this session
-                    session_processed = converted_count + skipped_count + error_count
+                    # Calculate total progress
+                    total_processed = previously_processed + session_processed
+                    
+                    # Show progress with speed for errors too
+                    percent_done = (total_processed / total_raw_files) * 100 if total_raw_files > 0 else 0
+                    elapsed = time.time() - start_process_time
                     
                     # Calculate files per second based on this session only
                     files_per_second = session_processed / elapsed if elapsed > 0 else 0
                     
-                    print(f"Progress: {progress_counter}/{total_raw_files} files ({percent_done:.1f}%) - {files_per_second:.2f} files/sec")
+                    print(f"Progress: {total_processed}/{total_raw_files} files ({percent_done:.1f}%) - {files_per_second:.2f} files/sec")
                     if previously_processed > 0:
                         print(f"  ({previously_processed} previously processed, {session_processed} in this session)")
         
