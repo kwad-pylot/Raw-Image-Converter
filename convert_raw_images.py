@@ -17,6 +17,16 @@ class PyExiv2Filter(logging.Filter):
     def __init__(self, verbose=False):
         super().__init__()
         self.verbose = verbose
+        # Patterns of warnings to suppress
+        self.patterns = [
+            '[warn] Exif tag',
+            '[warn] Directory Thumbnail',
+            'Data area exceeds data buffer',
+            'not encoded',
+            'Exif.Photo.MakerNote',
+            'Exif.Canon.CRWParam',
+            'Exif.Canon.Flavor'
+        ]
         
     def filter(self, record):
         # If verbose mode is enabled, show all messages
@@ -25,12 +35,7 @@ class PyExiv2Filter(logging.Filter):
             
         message = record.getMessage()
         # Filter out common pyexiv2 warnings
-        if any(pattern in message for pattern in [
-            '[warn] Exif tag',
-            '[warn] Directory Thumbnail',
-            'Data area exceeds data buffer',
-            'not encoded'
-        ]):
+        if any(pattern in message for pattern in self.patterns):
             return False
         return True
 
@@ -238,29 +243,22 @@ def convert_raw_to_jpeg(root_directory, args):
                     
                     # Copy detailed metadata from raw file to JPEG
                     try:
-                        # Create a context manager for stderr redirection
-                        class StderrRedirection:
-                            def __init__(self, suppress=True):
-                                self.suppress = suppress
-                                self.original_stderr = None
-                                self.null_file = None
-                                self.captured_output = None
-                                
-                            def __enter__(self):
-                                if self.suppress:
-                                    self.original_stderr = sys.stderr
-                                    self.null_file = open(os.devnull, 'w')
-                                    sys.stderr = self.null_file
-                                return self
-                                
-                            def __exit__(self, exc_type, exc_val, exc_tb):
-                                if self.suppress:
-                                    self.null_file.close()
-                                    sys.stderr = self.original_stderr
+                        # Define a more comprehensive stderr redirection that captures everything
+                        original_stderr = None
+                        null_file = None
+                        log_level = logging.getLogger().level
                         
-                        # Use the context manager to handle stderr redirection
                         # Only suppress warnings if verbose mode is not enabled
-                        with StderrRedirection(suppress=not args.verbose):
+                        if not args.verbose:
+                            # 1. Redirect stderr to /dev/null
+                            original_stderr = sys.stderr
+                            null_file = open(os.devnull, 'w')
+                            sys.stderr = null_file
+                            
+                            # 2. Temporarily increase logging level to hide warnings
+                            logging.getLogger().setLevel(logging.ERROR)
+                        
+                        try:
                             # Open both source and target images
                             source_metadata = pyexiv2.Image(input_path)
                             target_image = pyexiv2.Image(output_path)
@@ -281,6 +279,15 @@ def convert_raw_to_jpeg(root_directory, args):
                             # Save changes
                             target_image.close()
                             source_metadata.close()
+                        finally:
+                            # Always restore stderr and logging level
+                            if not args.verbose:
+                                if null_file:
+                                    null_file.close()
+                                if original_stderr:
+                                    sys.stderr = original_stderr
+                                # Restore original logging level
+                                logging.getLogger().setLevel(log_level)
                         
                         logging.info(f"Preserved metadata for {filename}")
                     except Exception as e:
