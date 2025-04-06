@@ -124,8 +124,11 @@ def convert_raw_to_jpeg(root_directory):
     
     print(f"Found {total_raw_files} raw files to process")
     
-    # Create a progress bar for the overall conversion process
-    main_progress = tqdm(total=total_raw_files, desc="Converting raw files", unit="file")
+    # Print the total count of files to process
+    print(f"Starting conversion of {total_raw_files} raw files...")
+    # Initialize a counter for progress updates
+    progress_counter = 0
+    start_process_time = time.time()
     
     # Walk through all directories and subdirectories
     for current_dir, subdirs, files in os.walk(root_directory):
@@ -235,8 +238,15 @@ def convert_raw_to_jpeg(root_directory):
                     logging.info(f"Converted: {filename} -> {output_filename}")
                     converted_count += 1
                     
-                    # Update the progress bar
-                    main_progress.update(1)
+                    # Update progress counter
+                    progress_counter += 1
+                    # Show progress every 10 files or when we reach multiples of 1%
+                    if progress_counter % 10 == 0 or progress_counter % max(1, int(total_raw_files/100)) == 0:
+                        elapsed = time.time() - start_process_time
+                        files_per_second = progress_counter / elapsed if elapsed > 0 else 0
+                        estimated_remaining = (total_raw_files - progress_counter) / files_per_second if files_per_second > 0 else 0
+                        percent_done = (progress_counter / total_raw_files) * 100 if total_raw_files > 0 else 0
+                        print(f"Progress: {progress_counter}/{total_raw_files} files ({percent_done:.1f}%) - {files_per_second:.2f} files/sec - Est. remaining: {estimated_remaining/60:.1f} min")
                 except (rawpy.LibRawFileUnsupportedError, rawpy.LibRawError, OSError, IOError) as e:
                     # Handle all types of raw file errors
                     error_msg = f"Error: Could not process {filename}. File format might be unsupported or corrupted: {e}"
@@ -252,8 +262,8 @@ def convert_raw_to_jpeg(root_directory):
                     corrupt_files.append(input_path)
                     error_count += 1
                     
-                    # Update the progress bar for errors
-                    main_progress.update(1)
+                    # Update progress counter for errors
+                    progress_counter += 1
                     
                 except Exception as e:
                     # Handle general conversion errors
@@ -270,14 +280,16 @@ def convert_raw_to_jpeg(root_directory):
                     corrupt_files.append(input_path)
                     error_count += 1
                     
-                    # Update the progress bar for errors
-                    main_progress.update(1)
+                    # Update progress counter for errors
+                    progress_counter += 1
         
         if not raw_files_found and len(files) > 0:
             print(f"No raw image files found in directory: {current_dir}")
 
-    # Close the progress bar
-    main_progress.close()
+    # Show final progress
+    elapsed = time.time() - start_process_time
+    files_per_second = converted_count / elapsed if elapsed > 0 else 0
+    print(f"\nCompleted: {converted_count + skipped_count + error_count}/{total_raw_files} files processed in {elapsed/60:.1f} minutes ({files_per_second:.2f} files/sec)")
     
     # Save the final conversion log
     save_conversion_log(conversion_log, root_directory)
