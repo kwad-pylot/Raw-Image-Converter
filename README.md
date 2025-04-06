@@ -11,6 +11,7 @@ A powerful Python tool for converting raw image files to high-quality JPEGs whil
 - **Partial Conversion Handling**: Tracks converted files to avoid redundant processing
 - **Corrupt File Detection**: Identifies problematic files without moving them
 - **Disk Space Checking**: Ensures sufficient space before starting conversion
+- **Directory-Specific Logs**: All logs are saved in the directory being processed
 - **Separate Deletion Tool**: Safely remove original raw files when ready
 
 ## Requirements
@@ -84,7 +85,8 @@ python delete_raw_files.py --force --batch 100
 
 #### Command-line Arguments
 
-- `--log`: Path to the conversion log JSON file (default: conversion_log.json)
+- `--dir`, `-d`: Directory containing the conversion logs (default: script location)
+- `--log`: Name of the conversion log file (default: conversion_log.json)
 - `--force`: Delete without confirmation prompt
 - `--batch`: Limit the number of files to delete in one run
 
@@ -136,6 +138,8 @@ The separate deletion script:
 - **raw_conversion.log**: Detailed text log of the conversion process
 - **deletion_log.log**: Detailed text log of the deletion process
 
+All log files are stored in the directory being processed, not in the script's location. This allows you to maintain separate logs for different photo collections and ensures that when you run the deletion tool, it will find the correct conversion logs.
+
 ## Examples
 
 ### Converting a specific folder of raw images:
@@ -143,9 +147,14 @@ The separate deletion script:
 python convert_raw_images.py --dir "C:\Users\Photos\Vacation2023"
 ```
 
+### Deleting raw files from the same directory:
+```
+python delete_raw_files.py --dir "C:\Users\Photos\Vacation2023"
+```
+
 ### Deleting raw files in batches:
 ```
-python delete_raw_files.py --batch 50
+python delete_raw_files.py --dir "C:\Users\Photos\Vacation2023" --batch 50
 ```
 
 ## Troubleshooting
