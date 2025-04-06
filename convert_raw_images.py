@@ -6,10 +6,17 @@ import json
 import shutil
 import time
 import argparse
+import sys
 from datetime import datetime
 import logging
 import pyexiv2
 from tqdm import tqdm
+
+# Create a custom filter to suppress pyexiv2 warnings
+class PyExiv2Filter(logging.Filter):
+    def filter(self, record):
+        return not (record.getMessage().startswith('[warn] Exif tag') or 
+                   record.getMessage().startswith('[warn] Directory Thumbnail'))
 
 # Set up logging - will be configured when the script runs with the correct directory
 
@@ -145,7 +152,9 @@ def convert_raw_to_jpeg(root_directory):
                     continue
 
                 try:
-                    logging.info(f"Processing {filename}...")
+                    # Only log processing in file log, not console
+                    if logging.getLogger().isEnabledFor(logging.DEBUG):
+                        logging.info(f"Processing {filename}...")
                     
                     # Get original file stats for timestamp preservation
                     original_stats = os.stat(input_path)
@@ -175,6 +184,10 @@ def convert_raw_to_jpeg(root_directory):
                     
                     # Copy detailed metadata from raw file to JPEG
                     try:
+                        # Temporarily redirect stderr to suppress pyexiv2 warnings
+                        original_stderr = sys.stderr
+                        sys.stderr = open(os.devnull, 'w')
+                        
                         # Open both source and target images
                         source_metadata = pyexiv2.Image(input_path)
                         target_image = pyexiv2.Image(output_path)
@@ -196,7 +209,11 @@ def convert_raw_to_jpeg(root_directory):
                         target_image.close()
                         source_metadata.close()
                         
-                        logging.info(f"Preserved detailed metadata for {filename}")
+                        # Restore stderr
+                        sys.stderr.close()
+                        sys.stderr = original_stderr
+                        
+                        logging.info(f"Preserved metadata for {filename}")
                     except Exception as e:
                         logging.warning(f"Could not preserve metadata for {filename}: {e}")
                     
@@ -211,7 +228,8 @@ def convert_raw_to_jpeg(root_directory):
                     if converted_count % 5 == 0:
                         save_conversion_log(conversion_log, root_directory)
                     
-                    logging.info(f"Successfully converted {filename} to {output_filename}")
+                    # Use a cleaner format for console output
+                    logging.info(f"Converted: {filename} → {output_filename}")
                     converted_count += 1
                     
                     # Update the progress bar
@@ -302,14 +320,24 @@ if __name__ == "__main__":
         
     # Set up logging with log file in the target directory
     log_file = os.path.join(args.directory, 'raw_conversion.log')
+    
+    # Configure the root logger
     logging.basicConfig(
         level=logging.INFO,
         format='%(asctime)s - %(levelname)s - %(message)s',
         handlers=[
             logging.FileHandler(log_file),
-            logging.StreamHandler()
+            # Custom stream handler with our filter
+            logging.StreamHandler(sys.stdout)
         ]
     )
+    
+    # Add our custom filter to the root logger's handlers
+    for handler in logging.root.handlers:
+        if isinstance(handler, logging.StreamHandler) and not isinstance(handler, logging.FileHandler):
+            handler.addFilter(PyExiv2Filter())
+            # Use a cleaner format for console output
+            handler.setFormatter(logging.Formatter('%(message)s'))
     
     start_time = time.time()
     logging.info("Starting raw image conversion process")
