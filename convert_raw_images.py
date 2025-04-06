@@ -373,8 +373,6 @@ def convert_raw_to_jpeg(root_directory, args):
                     files_per_second = session_processed / elapsed if elapsed > 0 else 0
                     
                     print(f"Progress: {total_processed}/{total_raw_files} files ({percent_done:.1f}%) - {files_per_second:.2f} files/sec")
-                    if previously_processed > 0:
-                        print(f"  ({previously_processed} previously processed, {session_processed} in this session)")
                     
                     # Show estimated time remaining every 10 files or when we reach multiples of 1%
                     if session_processed % 10 == 0 or session_processed % max(1, int(total_raw_files/100)) == 0:
@@ -410,8 +408,6 @@ def convert_raw_to_jpeg(root_directory, args):
                     files_per_second = session_processed / elapsed if elapsed > 0 else 0
                     
                     print(f"Progress: {total_processed}/{total_raw_files} files ({percent_done:.1f}%) - {files_per_second:.2f} files/sec")
-                    if previously_processed > 0:
-                        print(f"  ({previously_processed} previously processed, {session_processed} in this session)")
                     
                 except Exception as e:
                     # Handle general conversion errors
@@ -442,8 +438,6 @@ def convert_raw_to_jpeg(root_directory, args):
                     files_per_second = session_processed / elapsed if elapsed > 0 else 0
                     
                     print(f"Progress: {total_processed}/{total_raw_files} files ({percent_done:.1f}%) - {files_per_second:.2f} files/sec")
-                    if previously_processed > 0:
-                        print(f"  ({previously_processed} previously processed, {session_processed} in this session)")
         
         if not raw_files_found and len(files) > 0:
             print(f"No raw image files found in directory: {current_dir}")
