@@ -21,10 +21,11 @@ This document provides a detailed step-by-step explanation of how the Raw Image 
    - Get the starting directory (`--dir`)
    - Get minimum disk space requirement (`--space`)
    - Check if force conversion is enabled (`--force`)
+   - Check if verbose mode is enabled (`--verbose`)
 
 2. **Set Up Logging**
    - Configure logging to both console and file
-   - Apply custom filter to suppress pyexiv2 warnings
+   - Apply custom filter to suppress pyexiv2 warnings (unless verbose mode is enabled)
    - Create log file in the specified directory
 
 3. **Check Disk Space**
@@ -81,11 +82,12 @@ For each raw file found, the converter follows these exact steps, with integrate
    - Ensures file appears with original creation/modification dates
 
 7. **Metadata Transfer**
-   - Temporarily redirect stderr to suppress warnings
+   - Temporarily redirect stderr to suppress warnings (unless verbose mode is enabled)
    - Open source (raw) and target (JPEG) files with pyexiv2
    - Read EXIF, IPTC, and XMP metadata from source
    - Write all available metadata to target
    - Close both files and restore stderr
+   - Common warnings like 'Exif tag not encoded' and 'Directory Thumbnail' are suppressed
 
 8. **Conversion Logging and Space Monitoring**
    - Add entry to conversion log with:

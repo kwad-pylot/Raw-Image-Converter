@@ -14,9 +14,23 @@ from tqdm import tqdm
 
 # Create a custom filter to suppress pyexiv2 warnings
 class PyExiv2Filter(logging.Filter):
+    def __init__(self, verbose=False):
+        super().__init__()
+        self.verbose = verbose
+        
     def filter(self, record):
+        # If verbose mode is enabled, show all messages
+        if self.verbose:
+            return True
+            
         message = record.getMessage()
-        if '[warn]' in message and ('Exif tag' in message or 'Directory Thumbnail' in message):
+        # Filter out common pyexiv2 warnings
+        if any(pattern in message for pattern in [
+            '[warn] Exif tag',
+            '[warn] Directory Thumbnail',
+            'Data area exceeds data buffer',
+            'not encoded'
+        ]):
             return False
         return True
 
@@ -224,35 +238,49 @@ def convert_raw_to_jpeg(root_directory, args):
                     
                     # Copy detailed metadata from raw file to JPEG
                     try:
-                        # Temporarily redirect stderr to suppress pyexiv2 warnings
-                        original_stderr = sys.stderr
-                        null_file = open(os.devnull, 'w')
-                        sys.stderr = null_file
+                        # Create a context manager for stderr redirection
+                        class StderrRedirection:
+                            def __init__(self, suppress=True):
+                                self.suppress = suppress
+                                self.original_stderr = None
+                                self.null_file = None
+                                self.captured_output = None
+                                
+                            def __enter__(self):
+                                if self.suppress:
+                                    self.original_stderr = sys.stderr
+                                    self.null_file = open(os.devnull, 'w')
+                                    sys.stderr = self.null_file
+                                return self
+                                
+                            def __exit__(self, exc_type, exc_val, exc_tb):
+                                if self.suppress:
+                                    self.null_file.close()
+                                    sys.stderr = self.original_stderr
                         
-                        # Open both source and target images
-                        source_metadata = pyexiv2.Image(input_path)
-                        target_image = pyexiv2.Image(output_path)
-                        
-                        # Read all metadata from source
-                        exif_data = source_metadata.read_exif()
-                        iptc_data = source_metadata.read_iptc()
-                        xmp_data = source_metadata.read_xmp()
-                        
-                        # Write metadata to target
-                        if exif_data:
-                            target_image.modify_exif(exif_data)
-                        if iptc_data:
-                            target_image.modify_iptc(iptc_data)
-                        if xmp_data:
-                            target_image.modify_xmp(xmp_data)
+                        # Use the context manager to handle stderr redirection
+                        # Only suppress warnings if verbose mode is not enabled
+                        with StderrRedirection(suppress=not args.verbose):
+                            # Open both source and target images
+                            source_metadata = pyexiv2.Image(input_path)
+                            target_image = pyexiv2.Image(output_path)
                             
-                        # Save changes
-                        target_image.close()
-                        source_metadata.close()
-                        
-                        # Restore stderr
-                        null_file.close()
-                        sys.stderr = original_stderr
+                            # Read all metadata from source
+                            exif_data = source_metadata.read_exif()
+                            iptc_data = source_metadata.read_iptc()
+                            xmp_data = source_metadata.read_xmp()
+                            
+                            # Write metadata to target
+                            if exif_data:
+                                target_image.modify_exif(exif_data)
+                            if iptc_data:
+                                target_image.modify_iptc(iptc_data)
+                            if xmp_data:
+                                target_image.modify_xmp(xmp_data)
+                                
+                            # Save changes
+                            target_image.close()
+                            source_metadata.close()
                         
                         logging.info(f"Preserved metadata for {filename}")
                     except Exception as e:
@@ -451,6 +479,8 @@ if __name__ == "__main__":
                         default=500)
     parser.add_argument('--force', '-f', action='store_true',
                         help='Force conversion even with low disk space')
+    parser.add_argument('--verbose', '-v', action='store_true',
+                        help='Show detailed warning messages (including pyexiv2 warnings)')
     
     # Parse arguments
     args = parser.parse_args()
@@ -477,7 +507,7 @@ if __name__ == "__main__":
     # Add our custom filter to the root logger's handlers
     for handler in logging.root.handlers:
         if isinstance(handler, logging.StreamHandler) and not isinstance(handler, logging.FileHandler):
-            handler.addFilter(PyExiv2Filter())
+            handler.addFilter(PyExiv2Filter(verbose=args.verbose))
             # Use a cleaner format for console output
             handler.setFormatter(logging.Formatter('%(message)s'))
     

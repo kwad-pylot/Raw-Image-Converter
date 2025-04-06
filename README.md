@@ -43,6 +43,7 @@ A powerful Python tool for converting raw image files to high-quality JPEGs whil
 | `python convert_raw_images.py --dir "PATH"` | Convert raw files in specified directory | Current script directory |
 | `python convert_raw_images.py --space 500` | Set minimum required disk space (MB) for continuous monitoring | 500 MB |
 | `python convert_raw_images.py --force` | Force conversion despite low disk space | False (will warn and stop) |
+| `python convert_raw_images.py --verbose` | Show detailed warning messages (including pyexiv2 warnings) | False (warnings suppressed) |
 | `python convert_raw_images.py --dir "PATH" --space 1000 --force` | Combined options | - |
 
 #### Deleting Original Raw Files
@@ -67,6 +68,9 @@ python convert_raw_images.py --dir "C:\Users\Photos\Vacation2023"
 
 # Convert with low disk space override
 python convert_raw_images.py --dir "C:\Users\Photos\Vacation2023" --force
+
+# Convert with detailed warning messages (for troubleshooting)
+python convert_raw_images.py --verbose
 
 # Delete raw files after verifying conversions
 python delete_raw_files.py --dir "C:\Users\Photos\Vacation2023"
@@ -155,6 +159,7 @@ All log files are stored in the directory being processed, not in the script's l
   - When paused during conversion: Free up space and press Enter to continue, or type 'force' to override
 - **Corrupt file errors**: Check corrupt_files.json for details on problematic files
 - **Missing metadata**: Some cameras use proprietary metadata that may not transfer completely
+- **Metadata warnings**: By default, common pyexiv2 warnings are suppressed. Use the `--verbose` flag to see all warnings for troubleshooting
 
 ## License
 
